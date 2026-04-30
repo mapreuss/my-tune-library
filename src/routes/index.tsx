@@ -396,6 +396,7 @@ function Index() {
         onOpenChange={(o) => !o && setSelected(null)}
         onDelete={handleDelete}
         onRefetch={handleRefetch}
+        onEdit={handleEdit}
       />
 
       <AddAlbumDialog open={addOpen} onOpenChange={setAddOpen} onAdd={handleAdd} />
