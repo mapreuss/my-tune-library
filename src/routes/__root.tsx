@@ -37,6 +37,10 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Biblioteca Musical" },
+      { name: "twitter:description", content: "Sua coleção de álbuns em galeria, com capas, ano e links de streaming." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5e21a65e-f509-45c9-b4a6-39cb1f35aa8c/id-preview-e231f473--42957bd3-0a17-4caa-87c4-d8d019ff53b0.lovable.app-1777551779394.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5e21a65e-f509-45c9-b4a6-39cb1f35aa8c/id-preview-e231f473--42957bd3-0a17-4caa-87c4-d8d019ff53b0.lovable.app-1777551779394.png" },
     ],
     links: [
       {
