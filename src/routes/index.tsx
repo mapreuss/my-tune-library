@@ -171,6 +171,33 @@ function Index() {
     toast.success("Álbum removido");
   };
 
+  const handleEdit = (
+    original: Album,
+    changes: { disco: string; artista: string; ano?: string },
+  ): Album | null => {
+    const oldKey = albumKey(original);
+    const newKey = `${normalize(changes.artista)}::${normalize(changes.disco)}`;
+    if (newKey !== oldKey && albums.some((a) => albumKey(a) === newKey)) {
+      toast.error("Já existe um álbum com esse artista e nome");
+      return null;
+    }
+    let updated: Album | null = null;
+    setAlbums((prev) =>
+      prev.map((p) => {
+        if (albumKey(p) !== oldKey) return p;
+        updated = {
+          ...p,
+          disco: changes.disco,
+          artista: changes.artista,
+          ano: changes.ano,
+        };
+        return updated;
+      }),
+    );
+    toast.success("Álbum atualizado");
+    return updated;
+  };
+
   const handleRefetch = async (album: Album) => {
     const key = albumKey(album);
     const refreshed = await enrichAlbum({ ...album, capa: undefined, ano: undefined, enriched: false });
@@ -369,6 +396,7 @@ function Index() {
         onOpenChange={(o) => !o && setSelected(null)}
         onDelete={handleDelete}
         onRefetch={handleRefetch}
+        onEdit={handleEdit}
       />
 
       <AddAlbumDialog open={addOpen} onOpenChange={setAddOpen} onAdd={handleAdd} />
