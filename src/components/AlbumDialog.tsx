@@ -153,8 +153,17 @@ export function AlbumDialog({
 
   if (!current) return null;
 
-  const spotify = current.spotify || spotifySearchUrl(current.artista, current.disco);
-  const yt = current.youtubeMusic || youtubeMusicSearchUrl(current.artista, current.disco);
+  const safeUrl = (url: string | undefined, fallback: string): string => {
+    if (!url) return fallback;
+    try {
+      const { protocol } = new URL(url);
+      return protocol === "https:" || protocol === "http:" ? url : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const spotify = safeUrl(current.spotify, spotifySearchUrl(current.artista, current.disco));
+  const yt = safeUrl(current.youtubeMusic, youtubeMusicSearchUrl(current.artista, current.disco));
 
   const handleRefetch = async () => {
     setRefetching(true);
