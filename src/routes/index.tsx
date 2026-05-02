@@ -225,9 +225,35 @@ function Index() {
         toast.error("Nenhum álbum encontrado no CSV");
         return;
       }
-      // Merge: keep existing enriched data when keys match
+      if (albums.length === 0) {
+        setAlbums(parsed);
+        setHasLibrary(true);
+        toast.success(`${parsed.length} álbuns importados`);
+      } else {
+        setPendingImport(parsed);
+      }
+    } catch {
+      toast.error("Falha ao ler o CSV");
+    }
+  };
+
+  const applyImport = (mode: "append" | "merge" | "replace") => {
+    if (!pendingImport) return;
+    const incoming = pendingImport;
+    if (mode === "replace") {
+      setAlbums(incoming);
+      toast.success(`Biblioteca substituída (${incoming.length} álbuns)`);
+    } else if (mode === "append") {
+      setAlbums((prev) => {
+        const seen = new Set(prev.map(albumKey));
+        const added = incoming.filter((a) => !seen.has(albumKey(a)));
+        return [...prev, ...added];
+      });
+      toast.success(`${incoming.length} álbuns adicionados`);
+    } else {
+      // merge
       const map = new Map(albums.map((a) => [albumKey(a), a]));
-      for (const a of parsed) {
+      for (const a of incoming) {
         const k = albumKey(a);
         const existing = map.get(k);
         if (existing) {
@@ -244,13 +270,18 @@ function Index() {
           map.set(k, a);
         }
       }
-      const merged = Array.from(map.values());
-      setAlbums(merged);
-      setHasLibrary(true);
-      toast.success(`${parsed.length} álbuns importados (mesclados)`);
-    } catch {
-      toast.error("Falha ao ler o CSV");
+      setAlbums(Array.from(map.values()));
+      toast.success(`Mesclado com ${incoming.length} álbuns`);
     }
+    setHasLibrary(true);
+    setPendingImport(null);
+  };
+
+  const handleRandom = () => {
+    const pool = filtered.length > 0 ? filtered : albums;
+    if (pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setSelected(pick);
   };
 
   const handleClear = () => {
