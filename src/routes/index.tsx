@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Plus, Download, Upload, Trash2, Search, Music2 } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle } from "lucide-react";
 import { AlbumCard } from "@/components/AlbumCard";
 import { AlbumDialog } from "@/components/AlbumDialog";
 import { AddAlbumDialog } from "@/components/AddAlbumDialog";
@@ -84,6 +84,7 @@ function Index() {
   const [addOpen, setAddOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [enriching, setEnriching] = useState<{ done: number; total: number } | null>(null);
+  const [pendingImport, setPendingImport] = useState<Album[] | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage on mount
