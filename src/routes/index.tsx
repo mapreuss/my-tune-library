@@ -19,9 +19,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle, Wrench } from "lucide-react";
 import { AlbumCard } from "@/components/AlbumCard";
 import { AlbumDialog } from "@/components/AlbumDialog";
 import { AddAlbumDialog } from "@/components/AddAlbumDialog";
