@@ -59,13 +59,13 @@ export function AlbumCard({ album, onClick }: Props) {
         )}
       </div>
       <div className="mt-3 px-1">
-        <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-foreground">
-          {album.disco}
-        </h3>
-        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+        <p className="line-clamp-1 text-xs text-muted-foreground">
           {album.artista}
           {album.ano ? ` · ${album.ano}` : ""}
         </p>
+        <h3 className="mt-0.5 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-foreground">
+          {album.disco}
+        </h3>
       </div>
     </button>
   );
