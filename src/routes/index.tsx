@@ -460,6 +460,47 @@ function Index() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!pendingImport} onOpenChange={(o) => !o && setPendingImport(null)}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como deseja importar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem {albums.length} álbuns na biblioteca e o CSV traz {pendingImport?.length ?? 0}.
+              Escolha o que fazer:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              className="justify-start rounded-xl"
+              onClick={() => applyImport("append")}
+            >
+              <Plus className="size-4" />
+              Adicionar — só inclui novos (ignora duplicados)
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start rounded-xl"
+              onClick={() => applyImport("merge")}
+            >
+              <Upload className="size-4" />
+              Mesclar — combina por artista + nome, mantendo enriquecimento
+            </Button>
+            <Button
+              variant="destructive"
+              className="justify-start rounded-xl"
+              onClick={() => applyImport("replace")}
+            >
+              <Trash2 className="size-4" />
+              Sobrescrever — apaga tudo e usa apenas o novo CSV
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Toaster />
     </div>
   );
