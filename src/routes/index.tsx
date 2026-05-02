@@ -369,24 +369,6 @@ function Index() {
               <span className="hidden sm:inline">Aleatório</span>
             </Button>
 
-            <Button
-              onClick={() => setAddOpen(true)}
-              className="rounded-xl"
-              aria-label="Adicionar álbum"
-            >
-              <Plus className="size-4" />
-              <span className="hidden sm:inline">Adicionar</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleImportClick}
-              className="rounded-xl"
-              aria-label="Importar CSV"
-            >
-              <Upload className="size-4" />
-              <span className="hidden sm:inline">Importar</span>
-            </Button>
             <input
               ref={importInputRef}
               type="file"
@@ -399,24 +381,36 @@ function Index() {
               }}
             />
 
-            <Button
-              variant="outline"
-              onClick={handleExport}
-              className="rounded-xl"
-              aria-label="Exportar CSV"
-            >
-              <Download className="size-4" />
-              <span className="hidden sm:inline">Exportar</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              onClick={() => setConfirmClear(true)}
-              className="rounded-xl text-destructive hover:text-destructive"
-              aria-label="Limpar biblioteca"
-            >
-              <Trash2 className="size-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="rounded-xl" aria-label="Ferramentas">
+                  <Wrench className="size-4" />
+                  <span className="hidden sm:inline">Ferramentas</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-xl">
+                <DropdownMenuItem onClick={() => setAddOpen(true)}>
+                  <Plus className="size-4" />
+                  Adicionar álbum
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleImportClick}>
+                  <Upload className="size-4" />
+                  Importar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExport}>
+                  <Download className="size-4" />
+                  Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setConfirmClear(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                  Limpar biblioteca
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         {enriching && (
