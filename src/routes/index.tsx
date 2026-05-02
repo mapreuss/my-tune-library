@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Plus, Download, Upload, Trash2, Search, Music2 } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle } from "lucide-react";
 import { AlbumCard } from "@/components/AlbumCard";
 import { AlbumDialog } from "@/components/AlbumDialog";
 import { AddAlbumDialog } from "@/components/AddAlbumDialog";
@@ -84,6 +84,7 @@ function Index() {
   const [addOpen, setAddOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [enriching, setEnriching] = useState<{ done: number; total: number } | null>(null);
+  const [pendingImport, setPendingImport] = useState<Album[] | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage on mount
@@ -224,9 +225,35 @@ function Index() {
         toast.error("Nenhum álbum encontrado no CSV");
         return;
       }
-      // Merge: keep existing enriched data when keys match
+      if (albums.length === 0) {
+        setAlbums(parsed);
+        setHasLibrary(true);
+        toast.success(`${parsed.length} álbuns importados`);
+      } else {
+        setPendingImport(parsed);
+      }
+    } catch {
+      toast.error("Falha ao ler o CSV");
+    }
+  };
+
+  const applyImport = (mode: "append" | "merge" | "replace") => {
+    if (!pendingImport) return;
+    const incoming = pendingImport;
+    if (mode === "replace") {
+      setAlbums(incoming);
+      toast.success(`Biblioteca substituída (${incoming.length} álbuns)`);
+    } else if (mode === "append") {
+      setAlbums((prev) => {
+        const seen = new Set(prev.map(albumKey));
+        const added = incoming.filter((a) => !seen.has(albumKey(a)));
+        return [...prev, ...added];
+      });
+      toast.success(`${incoming.length} álbuns adicionados`);
+    } else {
+      // merge
       const map = new Map(albums.map((a) => [albumKey(a), a]));
-      for (const a of parsed) {
+      for (const a of incoming) {
         const k = albumKey(a);
         const existing = map.get(k);
         if (existing) {
@@ -243,13 +270,18 @@ function Index() {
           map.set(k, a);
         }
       }
-      const merged = Array.from(map.values());
-      setAlbums(merged);
-      setHasLibrary(true);
-      toast.success(`${parsed.length} álbuns importados (mesclados)`);
-    } catch {
-      toast.error("Falha ao ler o CSV");
+      setAlbums(Array.from(map.values()));
+      toast.success(`Mesclado com ${incoming.length} álbuns`);
     }
+    setHasLibrary(true);
+    setPendingImport(null);
+  };
+
+  const handleRandom = () => {
+    const pool = filtered.length > 0 ? filtered : albums;
+    if (pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setSelected(pick);
   };
 
   const handleClear = () => {
@@ -318,6 +350,17 @@ function Index() {
                 <SelectItem value="album">Álbum (A→Z)</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              onClick={handleRandom}
+              className="rounded-xl"
+              aria-label="Álbum aleatório"
+              disabled={albums.length === 0}
+            >
+              <Shuffle className="size-4" />
+              <span className="hidden sm:inline">Aleatório</span>
+            </Button>
 
             <Button
               onClick={() => setAddOpen(true)}
@@ -413,6 +456,47 @@ function Index() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleClear}>Limpar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingImport} onOpenChange={(o) => !o && setPendingImport(null)}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como deseja importar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem {albums.length} álbuns na biblioteca e o CSV traz {pendingImport?.length ?? 0}.
+              Escolha o que fazer:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              className="justify-start rounded-xl"
+              onClick={() => applyImport("append")}
+            >
+              <Plus className="size-4" />
+              Adicionar — só inclui novos (ignora duplicados)
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start rounded-xl"
+              onClick={() => applyImport("merge")}
+            >
+              <Upload className="size-4" />
+              Mesclar — combina por artista + nome, mantendo enriquecimento
+            </Button>
+            <Button
+              variant="destructive"
+              className="justify-start rounded-xl"
+              onClick={() => applyImport("replace")}
+            >
+              <Trash2 className="size-4" />
+              Sobrescrever — apaga tudo e usa apenas o novo CSV
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
