@@ -352,6 +352,17 @@ function Index() {
             </Select>
 
             <Button
+              variant="outline"
+              onClick={handleRandom}
+              className="rounded-xl"
+              aria-label="Álbum aleatório"
+              disabled={albums.length === 0}
+            >
+              <Shuffle className="size-4" />
+              <span className="hidden sm:inline">Aleatório</span>
+            </Button>
+
+            <Button
               onClick={() => setAddOpen(true)}
               className="rounded-xl"
               aria-label="Adicionar álbum"
