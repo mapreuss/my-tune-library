@@ -86,6 +86,7 @@ function Index() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [hasLibrary, setHasLibrary] = useState(false);
   const [sort, setSort] = useState<SortMode>("artist");
+  const [typeFilter, setTypeFilter] = useState<"all" | "disco" | "playlist">("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Album | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -146,13 +147,17 @@ function Index() {
 
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
-    const base = q
-      ? albums.filter(
-          (a) => normalize(a.disco).includes(q) || normalize(a.artista).includes(q),
-        )
-      : albums;
+    let base = albums;
+    if (typeFilter !== "all") {
+      base = base.filter((a) => (a.tipo ?? "disco").toLowerCase() === typeFilter);
+    }
+    if (q) {
+      base = base.filter(
+        (a) => normalize(a.disco).includes(q) || normalize(a.artista).includes(q),
+      );
+    }
     return sortAlbums(base, sort);
-  }, [albums, query, sort]);
+  }, [albums, query, sort, typeFilter]);
 
   const handleLoad = (loaded: Album[]) => {
     setAlbums(loaded);
@@ -350,6 +355,17 @@ function Index() {
                 className="rounded-xl pl-9"
               />
             </div>
+
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
+              <SelectTrigger className="w-[140px] rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tudo</SelectItem>
+                <SelectItem value="disco">Discos</SelectItem>
+                <SelectItem value="playlist">Playlists</SelectItem>
+              </SelectContent>
+            </Select>
 
             <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
               <SelectTrigger className="w-[180px] rounded-xl">

@@ -5,6 +5,7 @@ export type Album = {
   capa?: string;
   spotify?: string;
   youtubeMusic?: string;
+  tipo?: string;
   enriched?: boolean;
 };
 
@@ -59,6 +60,7 @@ export function parseCSV(text: string): Album[] {
   const iCapa = idx("capa");
   const iSpotify = idx("spotify");
   const iYt = idx("youtubemusic");
+  const iTipo = idx("tipo");
 
   const albums: Album[] = [];
   for (let r = 1; r < rows.length; r++) {
@@ -74,6 +76,7 @@ export function parseCSV(text: string): Album[] {
       capa: iCapa >= 0 ? (cols[iCapa] || "").trim() || undefined : undefined,
       spotify: iSpotify >= 0 ? (cols[iSpotify] || "").trim() || undefined : undefined,
       youtubeMusic: iYt >= 0 ? (cols[iYt] || "").trim() || undefined : undefined,
+      tipo: iTipo >= 0 ? (cols[iTipo] || "").trim().toLowerCase() || undefined : undefined,
     });
   }
   return albums;
@@ -88,11 +91,11 @@ function escape(value: string | undefined): string {
 }
 
 export function serializeCSV(albums: Album[]): string {
-  const header = ["Disco", "Artista", "Ano", "Capa", "Spotify", "YouTubeMusic"];
+  const header = ["Disco", "Artista", "Ano", "Capa", "Spotify", "YouTubeMusic", "Tipo"];
   const lines = [header.join(",")];
   for (const a of albums) {
     lines.push(
-      [a.disco, a.artista, a.ano, a.capa, a.spotify, a.youtubeMusic]
+      [a.disco, a.artista, a.ano, a.capa, a.spotify, a.youtubeMusic, a.tipo]
         .map(escape)
         .join(","),
     );
