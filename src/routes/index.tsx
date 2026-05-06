@@ -86,7 +86,7 @@ function Index() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [hasLibrary, setHasLibrary] = useState(false);
   const [sort, setSort] = useState<SortMode>("artist");
-  const [typeFilter, setTypeFilter] = useState<"all" | "disco" | "playlist">("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Album | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -149,7 +149,7 @@ function Index() {
     const q = normalize(query.trim());
     let base = albums;
     if (typeFilter !== "all") {
-      base = base.filter((a) => (a.tipo ?? "disco").toLowerCase() === typeFilter);
+      base = base.filter((a) => (a.tipo ?? "").toLowerCase() === typeFilter);
     }
     if (q) {
       base = base.filter(
@@ -158,6 +158,21 @@ function Index() {
     }
     return sortAlbums(base, sort);
   }, [albums, query, sort, typeFilter]);
+
+  const availableTypes = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of albums) {
+      const t = (a.tipo ?? "").trim().toLowerCase();
+      if (t) set.add(t);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [albums]);
+
+  useEffect(() => {
+    if (typeFilter !== "all" && !availableTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [availableTypes, typeFilter]);
 
   const handleLoad = (loaded: Album[]) => {
     setAlbums(loaded);
@@ -356,16 +371,21 @@ function Index() {
               />
             </div>
 
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
-              <SelectTrigger className="w-[140px] rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tudo</SelectItem>
-                <SelectItem value="disco">Discos</SelectItem>
-                <SelectItem value="playlist">Playlists</SelectItem>
-              </SelectContent>
-            </Select>
+            {availableTypes.length > 1 && (
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px] rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tudo</SelectItem>
+                  {availableTypes.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
               <SelectTrigger className="w-[180px] rounded-xl">
