@@ -86,6 +86,7 @@ function Index() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [hasLibrary, setHasLibrary] = useState(false);
   const [sort, setSort] = useState<SortMode>("artist");
+  const [typeFilter, setTypeFilter] = useState<"all" | "disco" | "playlist">("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Album | null>(null);
   const [addOpen, setAddOpen] = useState(false);
