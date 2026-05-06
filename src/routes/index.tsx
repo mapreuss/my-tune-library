@@ -371,16 +371,21 @@ function Index() {
               />
             </div>
 
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
-              <SelectTrigger className="w-[140px] rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tudo</SelectItem>
-                <SelectItem value="disco">Discos</SelectItem>
-                <SelectItem value="playlist">Playlists</SelectItem>
-              </SelectContent>
-            </Select>
+            {availableTypes.length > 1 && (
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px] rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tudo</SelectItem>
+                  {availableTypes.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
               <SelectTrigger className="w-[180px] rounded-xl">
