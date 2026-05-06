@@ -5,6 +5,7 @@ export type Album = {
   capa?: string;
   spotify?: string;
   youtubeMusic?: string;
+  tipo?: string;
   enriched?: boolean;
 };
 
