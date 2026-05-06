@@ -91,11 +91,11 @@ function escape(value: string | undefined): string {
 }
 
 export function serializeCSV(albums: Album[]): string {
-  const header = ["Disco", "Artista", "Ano", "Capa", "Spotify", "YouTubeMusic"];
+  const header = ["Disco", "Artista", "Ano", "Capa", "Spotify", "YouTubeMusic", "Tipo"];
   const lines = [header.join(",")];
   for (const a of albums) {
     lines.push(
-      [a.disco, a.artista, a.ano, a.capa, a.spotify, a.youtubeMusic]
+      [a.disco, a.artista, a.ano, a.capa, a.spotify, a.youtubeMusic, a.tipo]
         .map(escape)
         .join(","),
     );
