@@ -356,6 +356,17 @@ function Index() {
               />
             </div>
 
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
+              <SelectTrigger className="w-[140px] rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tudo</SelectItem>
+                <SelectItem value="disco">Discos</SelectItem>
+                <SelectItem value="playlist">Playlists</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
               <SelectTrigger className="w-[180px] rounded-xl">
                 <SelectValue />
