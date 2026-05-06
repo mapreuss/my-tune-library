@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,297 +9,261 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ExternalLink, RefreshCw, Trash2, Pencil, Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { ExternalLink, Trash2, Pencil, Check, X } from "lucide-react";
 import type { Album } from "@/lib/csv";
-import { spotifySearchUrl, youtubeMusicSearchUrl } from "@/lib/streaming";
+
+export type AlbumChanges = {
+  disco: string;
+  artista: string;
+  ano?: string;
+  capa?: string;
+  spotify?: string;
+  youtubeMusic?: string;
+};
 
 type Props = {
   album: Album | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete: (album: Album) => void;
-  onRefetch: (album: Album) => Promise<void>;
-  onEdit: (
-    original: Album,
-    changes: { disco: string; artista: string; ano?: string },
-  ) => Album | null;
+  onEdit: (original: Album, changes: AlbumChanges) => Album | null;
 };
 
-type EditField = "disco" | "artista" | "ano";
-
-function EditableField({
-  value,
-  placeholder,
-  className,
-  inputClassName,
-  ariaLabel,
-  onSave,
-}: {
-  value: string;
-  placeholder?: string;
-  className?: string;
-  inputClassName?: string;
-  ariaLabel: string;
-  onSave: (next: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-
-  useEffect(() => {
-    if (editing) {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
-    }
-  }, [editing]);
-
-  const commit = () => {
-    const trimmed = draft.trim();
-    if (trimmed !== value.trim()) onSave(trimmed);
-    setEditing(false);
-  };
-  const cancel = () => {
-    setDraft(value);
-    setEditing(false);
-  };
-
-  if (editing) {
-    return (
-      <span className={cn("inline-flex items-center gap-1 align-middle", className)}>
-        <Input
-          ref={inputRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              commit();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              cancel();
-            }
-          }}
-          onBlur={commit}
-          placeholder={placeholder}
-          aria-label={ariaLabel}
-          className={cn("h-8 rounded-lg", inputClassName)}
-        />
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="size-7 rounded-lg"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={commit}
-          aria-label="Confirmar"
-        >
-          <Check className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="size-7 rounded-lg"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={cancel}
-          aria-label="Cancelar"
-        >
-          <X className="size-4" />
-        </Button>
-      </span>
-    );
+const isSafeUrl = (url: string | undefined): url is string => {
+  if (!url) return false;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
   }
+};
 
-  return (
-    <button
-      type="button"
-      onClick={() => setEditing(true)}
-      aria-label={`Editar ${ariaLabel}`}
-      className={cn(
-        "group/edit inline-flex items-center gap-1.5 rounded-lg px-1 -mx-1 text-left hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        className,
-      )}
-    >
-      <span className={cn(!value && "text-muted-foreground")}>
-        {value || placeholder}
-      </span>
-      <Pencil className="size-3.5 opacity-0 transition-opacity group-hover/edit:opacity-60" />
-    </button>
-  );
-}
-
-export function AlbumDialog({
-  album,
-  open,
-  onOpenChange,
-  onDelete,
-  onRefetch,
-  onEdit,
-}: Props) {
-  const [refetching, setRefetching] = useState(false);
+export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Props) {
   const [confirmDel, setConfirmDel] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [current, setCurrent] = useState<Album | null>(album);
+  const [draft, setDraft] = useState<AlbumChanges>({
+    disco: "",
+    artista: "",
+  });
 
   useEffect(() => {
     setCurrent(album);
+    setEditing(false);
+    setConfirmDel(false);
   }, [album]);
 
   if (!current) return null;
 
-  const safeUrl = (url: string | undefined, fallback: string): string => {
-    if (!url) return fallback;
-    try {
-      const { protocol } = new URL(url);
-      return protocol === "https:" || protocol === "http:" ? url : fallback;
-    } catch {
-      return fallback;
-    }
-  };
-  const spotify = safeUrl(current.spotify, spotifySearchUrl(current.artista, current.disco));
-  const yt = safeUrl(current.youtubeMusic, youtubeMusicSearchUrl(current.artista, current.disco));
-
-  const handleRefetch = async () => {
-    setRefetching(true);
-    try {
-      await onRefetch(current);
-    } finally {
-      setRefetching(false);
-    }
+  const startEdit = () => {
+    setDraft({
+      disco: current.disco,
+      artista: current.artista,
+      ano: current.ano ?? "",
+      capa: current.capa ?? "",
+      spotify: current.spotify ?? "",
+      youtubeMusic: current.youtubeMusic ?? "",
+    });
+    setEditing(true);
   };
 
-  const handleFieldSave = (field: EditField, next: string) => {
-    const changes = {
-      disco: field === "disco" ? next : current.disco,
-      artista: field === "artista" ? next : current.artista,
-      ano: field === "ano" ? (next || undefined) : current.ano,
+  const saveEdit = () => {
+    if (!draft.disco.trim() || !draft.artista.trim()) return;
+    const changes: AlbumChanges = {
+      disco: draft.disco.trim(),
+      artista: draft.artista.trim(),
+      ano: draft.ano?.trim() || undefined,
+      capa: draft.capa?.trim() || undefined,
+      spotify: draft.spotify?.trim() || undefined,
+      youtubeMusic: draft.youtubeMusic?.trim() || undefined,
     };
-    if (!changes.disco.trim() || !changes.artista.trim()) return;
     const updated = onEdit(current, changes);
-    if (updated) setCurrent(updated);
+    if (updated) {
+      setCurrent(updated);
+      setEditing(false);
+    }
   };
+
+  const spotify = isSafeUrl(current.spotify) ? current.spotify : undefined;
+  const yt = isSafeUrl(current.youtubeMusic) ? current.youtubeMusic : undefined;
 
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        if (!o) setConfirmDel(false);
+        if (!o) {
+          setConfirmDel(false);
+          setEditing(false);
+        }
         onOpenChange(o);
       }}
     >
       <DialogContent className="rounded-3xl sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle asChild>
-            <div className="text-2xl font-semibold leading-tight">
-              <EditableField
-                value={current.disco}
-                ariaLabel="nome do álbum"
-                placeholder="Nome do álbum"
-                inputClassName="text-2xl font-semibold h-10"
-                onSave={(v) => handleFieldSave("disco", v)}
-              />
-            </div>
+          <DialogTitle className="text-2xl font-semibold leading-tight">
+            {current.disco}
           </DialogTitle>
-          <DialogDescription asChild>
-            <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
-              <EditableField
-                value={current.artista}
-                ariaLabel="artista"
-                placeholder="Artista"
-                onSave={(v) => handleFieldSave("artista", v)}
-              />
-              <span className="text-muted-foreground">·</span>
-              <EditableField
-                value={current.ano ?? ""}
-                ariaLabel="ano"
-                placeholder="Ano"
-                inputClassName="w-24"
-                onSave={(v) => handleFieldSave("ano", v)}
-              />
-            </div>
+          <DialogDescription>
+            {current.artista}
+            {current.ano ? ` · ${current.ano}` : ""}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 sm:grid-cols-[200px_1fr]">
-          <div className="aspect-square w-full overflow-hidden rounded-2xl bg-muted">
-            {current.capa ? (
-              <img
-                src={current.capa}
-                alt={`Capa de ${current.disco}`}
-                className="h-full w-full object-cover"
+        {editing ? (
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="ed-disco">Nome do álbum</Label>
+              <Input
+                id="ed-disco"
+                value={draft.disco}
+                onChange={(e) => setDraft((d) => ({ ...d, disco: e.target.value }))}
+                className="rounded-xl"
               />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                Sem capa
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[1fr_120px]">
+              <div className="grid gap-2">
+                <Label htmlFor="ed-artista">Artista</Label>
+                <Input
+                  id="ed-artista"
+                  value={draft.artista}
+                  onChange={(e) => setDraft((d) => ({ ...d, artista: e.target.value }))}
+                  className="rounded-xl"
+                />
               </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <a href={spotify} target="_blank" rel="noopener noreferrer">
-              <Button className="w-full justify-between rounded-xl" size="lg">
-                Abrir no Spotify
-                <ExternalLink className="size-4" />
-              </Button>
-            </a>
-            <a href={yt} target="_blank" rel="noopener noreferrer">
-              <Button
-                variant="secondary"
-                className="w-full justify-between rounded-xl"
-                size="lg"
-              >
-                Abrir no YouTube Music
-                <ExternalLink className="size-4" />
-              </Button>
-            </a>
-            <Button
-              variant="outline"
-              className="w-full justify-between rounded-xl"
-              onClick={handleRefetch}
-              disabled={refetching}
-            >
-              {refetching ? "Buscando..." : "Re-buscar metadados"}
-              <RefreshCw className={`size-4 ${refetching ? "animate-spin" : ""}`} />
-            </Button>
-          </div>
-        </div>
-
-        <DialogFooter className="mt-2 sm:justify-between">
-          {confirmDel ? (
-            <div className="flex w-full items-center justify-between gap-3">
-              <span className="text-sm text-muted-foreground">Excluir este álbum?</span>
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setConfirmDel(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    onDelete(current);
-                    setConfirmDel(false);
-                  }}
-                >
-                  Excluir
-                </Button>
+              <div className="grid gap-2">
+                <Label htmlFor="ed-ano">Ano</Label>
+                <Input
+                  id="ed-ano"
+                  value={draft.ano ?? ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, ano: e.target.value }))}
+                  className="rounded-xl"
+                />
               </div>
             </div>
-          ) : (
-            <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              onClick={() => setConfirmDel(true)}
-            >
-              <Trash2 className="mr-2 size-4" />
-              Excluir álbum
-            </Button>
-          )}
-        </DialogFooter>
+            <div className="grid gap-2">
+              <Label htmlFor="ed-capa">URL da capa</Label>
+              <Input
+                id="ed-capa"
+                value={draft.capa ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, capa: e.target.value }))}
+                placeholder="https://..."
+                className="rounded-xl"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ed-spotify">URL do Spotify</Label>
+              <Input
+                id="ed-spotify"
+                value={draft.spotify ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, spotify: e.target.value }))}
+                placeholder="https://open.spotify.com/album/..."
+                className="rounded-xl"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ed-yt">URL do YouTube Music</Label>
+              <Input
+                id="ed-yt"
+                value={draft.youtubeMusic ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, youtubeMusic: e.target.value }))}
+                placeholder="https://music.youtube.com/..."
+                className="rounded-xl"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setEditing(false)} className="rounded-xl">
+                <X className="size-4" />
+                Cancelar
+              </Button>
+              <Button onClick={saveEdit} className="rounded-xl">
+                <Check className="size-4" />
+                Salvar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-[200px_1fr]">
+            <div className="aspect-square w-full overflow-hidden rounded-2xl bg-muted">
+              {current.capa ? (
+                <img
+                  src={current.capa}
+                  alt={`Capa de ${current.disco}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                  Sem capa
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {spotify && (
+                <a href={spotify} target="_blank" rel="noopener noreferrer">
+                  <Button className="w-full justify-between rounded-xl" size="lg">
+                    Abrir no Spotify
+                    <ExternalLink className="size-4" />
+                  </Button>
+                </a>
+              )}
+              {yt && (
+                <a href={yt} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-between rounded-xl"
+                    size="lg"
+                  >
+                    Abrir no YouTube Music
+                    <ExternalLink className="size-4" />
+                  </Button>
+                </a>
+              )}
+              <Button
+                variant="outline"
+                className="w-full justify-between rounded-xl"
+                onClick={startEdit}
+              >
+                Editar
+                <Pencil className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!editing && (
+          <DialogFooter className="mt-2 sm:justify-between">
+            {confirmDel ? (
+              <div className="flex w-full items-center justify-between gap-3">
+                <span className="text-sm text-muted-foreground">Excluir este álbum?</span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setConfirmDel(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      onDelete(current);
+                      setConfirmDel(false);
+                    }}
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmDel(true)}
+              >
+                <Trash2 className="mr-2 size-4" />
+                Excluir álbum
+              </Button>
+            )}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
