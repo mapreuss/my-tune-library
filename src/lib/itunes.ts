@@ -1,5 +1,4 @@
 import type { Album } from "./csv";
-import { spotifySearchUrl, youtubeMusicSearchUrl } from "./streaming";
 
 type ITunesResult = {
   artworkUrl100?: string;
@@ -41,8 +40,6 @@ export async function enrichAlbum(album: Album): Promise<Album> {
     ...album,
     capa: album.capa || meta.capa,
     ano: album.ano || meta.ano,
-    spotify: album.spotify || spotifySearchUrl(album.artista, album.disco),
-    youtubeMusic: album.youtubeMusic || youtubeMusicSearchUrl(album.artista, album.disco),
     enriched: true,
   };
 }
