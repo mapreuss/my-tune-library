@@ -149,7 +149,7 @@ function Index() {
     const q = normalize(query.trim());
     let base = albums;
     if (typeFilter !== "all") {
-      base = base.filter((a) => (a.tipo ?? "disco").toLowerCase() === typeFilter);
+      base = base.filter((a) => (a.tipo ?? "").toLowerCase() === typeFilter);
     }
     if (q) {
       base = base.filter(
@@ -158,6 +158,21 @@ function Index() {
     }
     return sortAlbums(base, sort);
   }, [albums, query, sort, typeFilter]);
+
+  const availableTypes = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of albums) {
+      const t = (a.tipo ?? "").trim().toLowerCase();
+      if (t) set.add(t);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [albums]);
+
+  useEffect(() => {
+    if (typeFilter !== "all" && !availableTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [availableTypes, typeFilter]);
 
   const handleLoad = (loaded: Album[]) => {
     setAlbums(loaded);
