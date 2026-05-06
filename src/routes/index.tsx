@@ -147,13 +147,17 @@ function Index() {
 
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
-    const base = q
-      ? albums.filter(
-          (a) => normalize(a.disco).includes(q) || normalize(a.artista).includes(q),
-        )
-      : albums;
+    let base = albums;
+    if (typeFilter !== "all") {
+      base = base.filter((a) => (a.tipo ?? "disco").toLowerCase() === typeFilter);
+    }
+    if (q) {
+      base = base.filter(
+        (a) => normalize(a.disco).includes(q) || normalize(a.artista).includes(q),
+      );
+    }
     return sortAlbums(base, sort);
-  }, [albums, query, sort]);
+  }, [albums, query, sort, typeFilter]);
 
   const handleLoad = (loaded: Album[]) => {
     setAlbums(loaded);
