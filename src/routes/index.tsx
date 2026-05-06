@@ -181,7 +181,14 @@ function Index() {
 
   const handleEdit = (
     original: Album,
-    changes: { disco: string; artista: string; ano?: string },
+    changes: {
+      disco: string;
+      artista: string;
+      ano?: string;
+      capa?: string;
+      spotify?: string;
+      youtubeMusic?: string;
+    },
   ): Album | null => {
     const oldKey = albumKey(original);
     const newKey = `${normalize(changes.artista)}::${normalize(changes.disco)}`;
@@ -198,6 +205,9 @@ function Index() {
           disco: changes.disco,
           artista: changes.artista,
           ano: changes.ano,
+          capa: changes.capa,
+          spotify: changes.spotify,
+          youtubeMusic: changes.youtubeMusic,
         };
         return updated;
       }),
@@ -206,13 +216,6 @@ function Index() {
     return updated;
   };
 
-  const handleRefetch = async (album: Album) => {
-    const key = albumKey(album);
-    const refreshed = await enrichAlbum({ ...album, capa: undefined, ano: undefined, enriched: false });
-    setAlbums((prev) => prev.map((p) => (albumKey(p) === key ? { ...p, ...refreshed } : p)));
-    setSelected(refreshed);
-    toast.success("Metadados atualizados");
-  };
 
   const handleExport = () => {
     if (albums.length === 0) {
@@ -439,7 +442,6 @@ function Index() {
         open={!!selected}
         onOpenChange={(o) => !o && setSelected(null)}
         onDelete={handleDelete}
-        onRefetch={handleRefetch}
         onEdit={handleEdit}
       />
 
