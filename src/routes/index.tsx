@@ -481,9 +481,15 @@ function Index() {
         onOpenChange={(o) => !o && setSelected(null)}
         onDelete={handleDelete}
         onEdit={handleEdit}
+        availableTypes={availableTypes}
       />
 
-      <AddAlbumDialog open={addOpen} onOpenChange={setAddOpen} onAdd={handleAdd} />
+      <AddAlbumDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdd={handleAdd}
+        availableTypes={availableTypes}
+      />
 
       <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
         <AlertDialogContent className="rounded-3xl">
