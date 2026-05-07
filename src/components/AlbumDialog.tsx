@@ -42,7 +42,7 @@ const isSafeUrl = (url: string | undefined): url is string => {
   }
 };
 
-export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Props) {
+export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit, availableTypes = [] }: Props) {
   const [confirmDel, setConfirmDel] = useState(false);
   const [editing, setEditing] = useState(false);
   const [current, setCurrent] = useState<Album | null>(album);
@@ -67,6 +67,7 @@ export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Pro
       capa: current.capa ?? "",
       spotify: current.spotify ?? "",
       youtubeMusic: current.youtubeMusic ?? "",
+      tipo: current.tipo ?? "",
     });
     setEditing(true);
   };
@@ -80,6 +81,7 @@ export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Pro
       capa: draft.capa?.trim() || undefined,
       spotify: draft.spotify?.trim() || undefined,
       youtubeMusic: draft.youtubeMusic?.trim() || undefined,
+      tipo: draft.tipo?.trim().toLowerCase() || undefined,
     };
     const updated = onEdit(current, changes);
     if (updated) {
