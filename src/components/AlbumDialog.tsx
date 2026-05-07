@@ -20,6 +20,7 @@ export type AlbumChanges = {
   capa?: string;
   spotify?: string;
   youtubeMusic?: string;
+  tipo?: string;
 };
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onDelete: (album: Album) => void;
   onEdit: (original: Album, changes: AlbumChanges) => Album | null;
+  availableTypes?: string[];
 };
 
 const isSafeUrl = (url: string | undefined): url is string => {
