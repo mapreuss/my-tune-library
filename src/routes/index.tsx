@@ -181,15 +181,15 @@ function Index() {
     toast.success(`${loaded.length} álbuns importados`);
   };
 
-  const handleAdd = (artista: string, disco: string) => {
-    const key = `${normalize(artista)}::${normalize(disco)}`;
+  const handleAdd = (album: Album) => {
+    const key = albumKey(album);
     if (albums.some((a) => albumKey(a) === key)) {
       toast.error("Este álbum já está na biblioteca");
       return;
     }
-    const novo: Album = { artista, disco, enriched: false };
-    setAlbums((prev) => [...prev, novo]);
-    toast.success("Álbum adicionado, buscando metadados...");
+    setAlbums((prev) => [...prev, album]);
+    setAddOpen(false);
+    toast.success("Álbum adicionado");
   };
 
   const handleDelete = (album: Album) => {
@@ -208,6 +208,7 @@ function Index() {
       capa?: string;
       spotify?: string;
       youtubeMusic?: string;
+      tipo?: string;
     },
   ): Album | null => {
     const oldKey = albumKey(original);
@@ -228,6 +229,7 @@ function Index() {
           capa: changes.capa,
           spotify: changes.spotify,
           youtubeMusic: changes.youtubeMusic,
+          tipo: changes.tipo,
         };
         return updated;
       }),
