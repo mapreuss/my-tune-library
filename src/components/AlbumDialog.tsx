@@ -176,6 +176,22 @@ export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit, avail
                 className="rounded-xl"
               />
             </div>
+            <datalist id="ed-tipo-options">
+              {availableTypes.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+            <div className="grid gap-2">
+              <Label htmlFor="ed-tipo">Tipo</Label>
+              <Input
+                id="ed-tipo"
+                value={draft.tipo ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, tipo: e.target.value }))}
+                list="ed-tipo-options"
+                placeholder="disco, playlist, ..."
+                className="rounded-xl"
+              />
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setEditing(false)} className="rounded-xl">
                 <X className="size-4" />
