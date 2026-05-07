@@ -20,6 +20,7 @@ export type AlbumChanges = {
   capa?: string;
   spotify?: string;
   youtubeMusic?: string;
+  tipo?: string;
 };
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onDelete: (album: Album) => void;
   onEdit: (original: Album, changes: AlbumChanges) => Album | null;
+  availableTypes?: string[];
 };
 
 const isSafeUrl = (url: string | undefined): url is string => {
@@ -40,7 +42,7 @@ const isSafeUrl = (url: string | undefined): url is string => {
   }
 };
 
-export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Props) {
+export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit, availableTypes = [] }: Props) {
   const [confirmDel, setConfirmDel] = useState(false);
   const [editing, setEditing] = useState(false);
   const [current, setCurrent] = useState<Album | null>(album);
@@ -65,6 +67,7 @@ export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Pro
       capa: current.capa ?? "",
       spotify: current.spotify ?? "",
       youtubeMusic: current.youtubeMusic ?? "",
+      tipo: current.tipo ?? "",
     });
     setEditing(true);
   };
@@ -78,6 +81,7 @@ export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Pro
       capa: draft.capa?.trim() || undefined,
       spotify: draft.spotify?.trim() || undefined,
       youtubeMusic: draft.youtubeMusic?.trim() || undefined,
+      tipo: draft.tipo?.trim().toLowerCase() || undefined,
     };
     const updated = onEdit(current, changes);
     if (updated) {
@@ -169,6 +173,22 @@ export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit }: Pro
                 value={draft.youtubeMusic ?? ""}
                 onChange={(e) => setDraft((d) => ({ ...d, youtubeMusic: e.target.value }))}
                 placeholder="https://music.youtube.com/..."
+                className="rounded-xl"
+              />
+            </div>
+            <datalist id="ed-tipo-options">
+              {availableTypes.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+            <div className="grid gap-2">
+              <Label htmlFor="ed-tipo">Tipo</Label>
+              <Input
+                id="ed-tipo"
+                value={draft.tipo ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, tipo: e.target.value }))}
+                list="ed-tipo-options"
+                placeholder="disco, playlist, ..."
                 className="rounded-xl"
               />
             </div>
