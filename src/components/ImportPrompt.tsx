@@ -43,7 +43,7 @@ export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-12">
+    <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 py-12">
       <div className="mb-6 flex size-16 items-center justify-center rounded-3xl bg-card text-primary shadow-soft">
         <FileMusic className="size-8" />
       </div>
