@@ -135,7 +135,7 @@ function PrivacyPolicyPage() {
           <h2 className="text-xl font-semibold mt-8 mb-3">7. Contato</h2>
           <p>
             Em caso de dúvidas sobre esta política, entre em contato pelo
-            e-mail: <code>[seu e-mail aqui]</code>.
+            e-mail: <code>marta.preuss@gmail.com</code>.
           </p>
         </section>
       </article>
