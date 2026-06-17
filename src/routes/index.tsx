@@ -158,6 +158,8 @@ function Index() {
           const enriched = await enrichAlbum(a);
           if (cancelled) return enriched;
           let updatedRow: { idx: number; album: Album } | null = null;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const _typeHelper: { idx: number; album: Album } | null = updatedRow;
           setAlbums((prev) => {
             const key = albumKey(a);
             return prev.map((p, idx) => {
