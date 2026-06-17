@@ -1,0 +1,8 @@
+# Biblioteca Musical
+
+> Catálogo musical pessoal que roda no navegador. Importe um CSV ou conecte uma planilha do Google Sheets para visualizar, adicionar, editar e remover álbuns, com capas, ano, tipo e links rápidos para Spotify e YouTube Music.
+
+## Pages
+
+- [Biblioteca](/): galeria de álbuns com busca, filtro por tipo, ordenação e ferramentas de importação/exportação.
+- [Política de Privacidade](/politica-de-privacidade): como o aplicativo usa o acesso à sua planilha do Google Sheets.

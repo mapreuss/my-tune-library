@@ -53,6 +53,24 @@ import {
 
 export const Route = createFileRoute("/")({
   component: Index,
+  head: () => ({
+    meta: [
+      { title: "Biblioteca Musical — Sua coleção de álbuns e links de streaming" },
+      {
+        name: "description",
+        content:
+          "Catálogo pessoal de álbuns com capas, ano, tipo e links rápidos para Spotify e YouTube Music. Importe via CSV ou conecte uma planilha do Google.",
+      },
+      { property: "og:title", content: "Biblioteca Musical — Sua coleção de álbuns e links" },
+      {
+        property: "og:description",
+        content:
+          "Catálogo pessoal de álbuns com capas, ano e links de streaming. Importe via CSV ou conecte uma planilha do Google.",
+      },
+      { property: "og:url", content: "https://my-tune-library.lovable.app/" },
+    ],
+    links: [{ rel: "canonical", href: "https://my-tune-library.lovable.app/" }],
+  }),
 });
 
 type SortMode = "artist" | "album";
@@ -466,7 +484,7 @@ function Index() {
             <div className="flex size-9 items-center justify-center rounded-xl bg-card text-primary">
               <Music2 className="size-5" />
             </div>
-            <h1 className="text-lg font-semibold tracking-tight">Biblioteca</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Minha Biblioteca Musical</h1>
             <span className="ml-1 text-sm text-muted-foreground">
               {albums.length} álbuns
             </span>
@@ -494,6 +512,7 @@ function Index() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar álbum ou artista"
+                aria-label="Buscar álbuns ou artistas"
                 className="rounded-xl pl-9"
               />
             </div>
