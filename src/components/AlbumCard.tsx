@@ -63,9 +63,9 @@ export function AlbumCard({ album, onClick }: Props) {
           {album.artista}
           {album.ano ? ` · ${album.ano}` : ""}
         </p>
-        <h3 className="mt-0.5 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-foreground">
+        <h2 className="mt-0.5 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-foreground">
           {album.disco}
-        </h3>
+        </h2>
       </div>
     </button>
   );
