@@ -175,12 +175,6 @@ function Index() {
               console.error("Falha ao sincronizar enriquecimento", e);
             }
           }
-            try {
-              await updateAlbumInSheet(sheetCfg, updatedRow.idx, updatedRow.album);
-            } catch (e) {
-              console.error("Falha ao sincronizar enriquecimento", e);
-            }
-          }
           return enriched;
         },
         4,
