@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle, Wrench } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle, Wrench, Sheet, RefreshCw, Unlink } from "lucide-react";
 import { AlbumCard } from "@/components/AlbumCard";
 import { AlbumDialog } from "@/components/AlbumDialog";
 import { AddAlbumDialog } from "@/components/AddAlbumDialog";
 import { ImportPrompt } from "@/components/ImportPrompt";
+import { ConnectSheetDialog } from "@/components/ConnectSheetDialog";
 import {
   parseCSV,
   downloadCSV,
@@ -40,6 +41,15 @@ import {
 } from "@/lib/csv";
 import { loadLibrary, saveLibrary, clearLibrary } from "@/lib/storage";
 import { enrichAlbum, runWithConcurrency } from "@/lib/itunes";
+import {
+  loadSheetConfig,
+  clearSheetConfig,
+  fetchAlbums as fetchSheetAlbums,
+  appendAlbumToSheet,
+  updateAlbumInSheet,
+  deleteAlbumFromSheet,
+  type SheetConfig,
+} from "@/lib/sheets";
 
 export const Route = createFileRoute("/")({
   component: Index,
