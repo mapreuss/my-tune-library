@@ -67,7 +67,7 @@ export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
             const f = e.dataTransfer.files?.[0];
             if (f) handleFile(f);
           }}
-          className={`flex h-full cursor-pointer flex-col rounded-3xl border-2 border-dashed p-10 text-center transition-colors ${
+          className={`flex h-full cursor-pointer flex-col rounded-3xl border p-10 text-center transition-colors ${
             dragOver ? "border-primary bg-card" : "border-border bg-card/50"
           }`}
           onClick={() => inputRef.current?.click()}
