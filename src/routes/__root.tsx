@@ -29,6 +29,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "google-site-verification", content: "2Mi6PzoFy6XnzbqZTI9rlC1S-xbrGn8RCiGOJ1WTV_M" },
       { title: "Biblioteca Musical" },
       { name: "description", content: "Sua coleção de álbuns em galeria, com capas, ano e links de streaming." },
       { name: "author", content: "Lovable" },
