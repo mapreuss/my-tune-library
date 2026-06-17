@@ -227,10 +227,53 @@ function Index() {
     toast.success(`${loaded.length} álbuns importados`);
   };
 
-  const handleAdd = (album: Album) => {
+  const handleSheetConnected = (cfg: SheetConfig, loaded: Album[]) => {
+    setSheetCfg(cfg);
+    setAlbums(loaded);
+    setHasLibrary(true);
+    toast.success(`Planilha "${cfg.title}" conectada (${loaded.length} álbuns)`);
+  };
+
+  const refreshFromSheet = async (cfg = sheetCfg) => {
+    if (!cfg) return;
+    setSheetBusy(true);
+    try {
+      const list = await fetchSheetAlbums(cfg);
+      setAlbums(list);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao recarregar planilha");
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
+  const handleDisconnectSheet = () => {
+    clearSheetConfig();
+    setSheetCfg(null);
+    setAlbums([]);
+    setHasLibrary(false);
+    setConfirmDisconnect(false);
+    toast.success("Planilha desconectada");
+  };
+
+  const handleAdd = async (album: Album) => {
     const key = albumKey(album);
     if (albums.some((a) => albumKey(a) === key)) {
       toast.error("Este álbum já está na biblioteca");
+      return;
+    }
+    if (sheetCfg) {
+      setSheetBusy(true);
+      try {
+        await appendAlbumToSheet(sheetCfg, album);
+        await refreshFromSheet(sheetCfg);
+        setAddOpen(false);
+        toast.success("Álbum adicionado");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Falha ao salvar na planilha");
+      } finally {
+        setSheetBusy(false);
+      }
       return;
     }
     setAlbums((prev) => [...prev, album]);
@@ -238,8 +281,24 @@ function Index() {
     toast.success("Álbum adicionado");
   };
 
-  const handleDelete = (album: Album) => {
+  const handleDelete = async (album: Album) => {
     const key = albumKey(album);
+    if (sheetCfg) {
+      const idx = albums.findIndex((a) => albumKey(a) === key);
+      if (idx < 0) return;
+      setSheetBusy(true);
+      try {
+        await deleteAlbumFromSheet(sheetCfg, idx);
+        await refreshFromSheet(sheetCfg);
+        setSelected(null);
+        toast.success("Álbum removido");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Falha ao remover da planilha");
+      } finally {
+        setSheetBusy(false);
+      }
+      return;
+    }
     setAlbums((prev) => prev.filter((a) => albumKey(a) !== key));
     setSelected(null);
     toast.success("Álbum removido");
@@ -263,23 +322,28 @@ function Index() {
       toast.error("Já existe um álbum com esse artista e nome");
       return null;
     }
-    let updated: Album | null = null;
-    setAlbums((prev) =>
-      prev.map((p) => {
-        if (albumKey(p) !== oldKey) return p;
-        updated = {
-          ...p,
-          disco: changes.disco,
-          artista: changes.artista,
-          ano: changes.ano,
-          capa: changes.capa,
-          spotify: changes.spotify,
-          youtubeMusic: changes.youtubeMusic,
-          tipo: changes.tipo,
-        };
-        return updated;
-      }),
-    );
+    const idx = albums.findIndex((a) => albumKey(a) === oldKey);
+    if (idx < 0) return null;
+    const updated: Album = {
+      ...albums[idx],
+      disco: changes.disco,
+      artista: changes.artista,
+      ano: changes.ano,
+      capa: changes.capa,
+      spotify: changes.spotify,
+      youtubeMusic: changes.youtubeMusic,
+      tipo: changes.tipo,
+    };
+    if (sheetCfg) {
+      setSheetBusy(true);
+      updateAlbumInSheet(sheetCfg, idx, updated)
+        .then(() => refreshFromSheet(sheetCfg))
+        .then(() => toast.success("Álbum atualizado"))
+        .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar na planilha"))
+        .finally(() => setSheetBusy(false));
+      return updated;
+    }
+    setAlbums((prev) => prev.map((p, i) => (i === idx ? updated : p)));
     toast.success("Álbum atualizado");
     return updated;
   };
