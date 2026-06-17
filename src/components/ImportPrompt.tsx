@@ -1,16 +1,20 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileMusic } from "lucide-react";
+import { Upload, FileMusic, Sheet } from "lucide-react";
 import { parseCSV, type Album } from "@/lib/csv";
+import { ConnectSheetDialog } from "./ConnectSheetDialog";
+import type { SheetConfig } from "@/lib/sheets";
 
 type Props = {
   onLoad: (albums: Album[]) => void;
+  onSheetConnected: (config: SheetConfig, albums: Album[]) => void;
 };
 
-export function ImportPrompt({ onLoad }: Props) {
+export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleFile = async (file: File) => {
     setError(null);
@@ -47,7 +51,7 @@ export function ImportPrompt({ onLoad }: Props) {
         Sua biblioteca musical
       </h1>
       <p className="mt-3 text-center text-muted-foreground">
-        Importe um CSV com seus álbuns para começar. As capas, anos e links serão buscados automaticamente.
+        Importe um CSV ou conecte uma planilha do Google Sheets para começar.
       </p>
 
       <div
@@ -86,6 +90,20 @@ export function ImportPrompt({ onLoad }: Props) {
         />
       </div>
 
+      <div className="mt-4 w-full rounded-3xl border border-border bg-card/50 p-6 text-center">
+        <Sheet className="mx-auto mb-3 size-8 text-primary" />
+        <p className="font-medium">Conectar planilha do Google Sheets</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Edições na biblioteca vão direto para a planilha — sempre sincronizadas.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          A planilha deve estar aberta e ter as colunas: Disco, Artista, Ano, Capa, Spotify, YouTubeMusic, Tipo.
+        </p>
+        <Button onClick={() => setSheetOpen(true)} className="mt-4 rounded-xl">
+          Conectar planilha
+        </Button>
+      </div>
+
       <div className="mt-6">
         <Button variant="outline" onClick={loadSample} className="rounded-xl">
           Usar biblioteca de exemplo
@@ -97,6 +115,13 @@ export function ImportPrompt({ onLoad }: Props) {
           {error}
         </p>
       )}
+
+      <ConnectSheetDialog
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onConnected={onSheetConnected}
+      />
     </div>
   );
 }
+

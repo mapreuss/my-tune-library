@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle, Wrench } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Search, Music2, Shuffle, Wrench, Sheet, RefreshCw, Unlink } from "lucide-react";
 import { AlbumCard } from "@/components/AlbumCard";
 import { AlbumDialog } from "@/components/AlbumDialog";
 import { AddAlbumDialog } from "@/components/AddAlbumDialog";
 import { ImportPrompt } from "@/components/ImportPrompt";
+import { ConnectSheetDialog } from "@/components/ConnectSheetDialog";
 import {
   parseCSV,
   downloadCSV,
@@ -40,6 +41,15 @@ import {
 } from "@/lib/csv";
 import { loadLibrary, saveLibrary, clearLibrary } from "@/lib/storage";
 import { enrichAlbum, runWithConcurrency } from "@/lib/itunes";
+import {
+  loadSheetConfig,
+  clearSheetConfig,
+  fetchAlbums as fetchSheetAlbums,
+  appendAlbumToSheet,
+  updateAlbumInSheet,
+  deleteAlbumFromSheet,
+  type SheetConfig,
+} from "@/lib/sheets";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -93,10 +103,32 @@ function Index() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [enriching, setEnriching] = useState<{ done: number; total: number } | null>(null);
   const [pendingImport, setPendingImport] = useState<Album[] | null>(null);
+  const [sheetCfg, setSheetCfg] = useState<SheetConfig | null>(null);
+  const [sheetDialogOpen, setSheetDialogOpen] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [sheetBusy, setSheetBusy] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  // Load from localStorage on mount
+  // Load on mount: sheet first, then localStorage
   useEffect(() => {
+    const cfg = loadSheetConfig();
+    if (cfg) {
+      setSheetCfg(cfg);
+      setSheetBusy(true);
+      fetchSheetAlbums(cfg)
+        .then((list) => {
+          setAlbums(list);
+          setHasLibrary(true);
+        })
+        .catch((e) => {
+          toast.error(e instanceof Error ? e.message : "Falha ao ler a planilha");
+        })
+        .finally(() => {
+          setSheetBusy(false);
+          setHydrated(true);
+        });
+      return;
+    }
     const stored = loadLibrary();
     if (stored && stored.length > 0) {
       setAlbums(stored);
@@ -105,11 +137,11 @@ function Index() {
     setHydrated(true);
   }, []);
 
-  // Persist whenever albums change (after hydration)
+  // Persist to localStorage only in CSV mode
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || sheetCfg) return;
     if (hasLibrary) saveLibrary(albums);
-  }, [albums, hydrated, hasLibrary]);
+  }, [albums, hydrated, hasLibrary, sheetCfg]);
 
   // Background enrichment
   useEffect(() => {
@@ -125,10 +157,24 @@ function Index() {
         async (a) => {
           const enriched = await enrichAlbum(a);
           if (cancelled) return enriched;
+          const updatedRow: { current: { idx: number; album: Album } | null } = { current: null };
           setAlbums((prev) => {
             const key = albumKey(a);
-            return prev.map((p) => (albumKey(p) === key ? { ...p, ...enriched } : p));
+            return prev.map((p, idx) => {
+              if (albumKey(p) !== key) return p;
+              const merged = { ...p, ...enriched };
+              updatedRow.current = { idx, album: merged };
+              return merged;
+            });
           });
+          // Write enrichment back to sheet (if connected)
+          if (sheetCfg && updatedRow.current) {
+            try {
+              await updateAlbumInSheet(sheetCfg, updatedRow.current.idx, updatedRow.current.album);
+            } catch (e) {
+              console.error("Falha ao sincronizar enriquecimento", e);
+            }
+          }
           return enriched;
         },
         4,
@@ -181,10 +227,53 @@ function Index() {
     toast.success(`${loaded.length} álbuns importados`);
   };
 
-  const handleAdd = (album: Album) => {
+  const handleSheetConnected = (cfg: SheetConfig, loaded: Album[]) => {
+    setSheetCfg(cfg);
+    setAlbums(loaded);
+    setHasLibrary(true);
+    toast.success(`Planilha "${cfg.title}" conectada (${loaded.length} álbuns)`);
+  };
+
+  const refreshFromSheet = async (cfg = sheetCfg) => {
+    if (!cfg) return;
+    setSheetBusy(true);
+    try {
+      const list = await fetchSheetAlbums(cfg);
+      setAlbums(list);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao recarregar planilha");
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
+  const handleDisconnectSheet = () => {
+    clearSheetConfig();
+    setSheetCfg(null);
+    setAlbums([]);
+    setHasLibrary(false);
+    setConfirmDisconnect(false);
+    toast.success("Planilha desconectada");
+  };
+
+  const handleAdd = async (album: Album) => {
     const key = albumKey(album);
     if (albums.some((a) => albumKey(a) === key)) {
       toast.error("Este álbum já está na biblioteca");
+      return;
+    }
+    if (sheetCfg) {
+      setSheetBusy(true);
+      try {
+        await appendAlbumToSheet(sheetCfg, album);
+        await refreshFromSheet(sheetCfg);
+        setAddOpen(false);
+        toast.success("Álbum adicionado");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Falha ao salvar na planilha");
+      } finally {
+        setSheetBusy(false);
+      }
       return;
     }
     setAlbums((prev) => [...prev, album]);
@@ -192,8 +281,24 @@ function Index() {
     toast.success("Álbum adicionado");
   };
 
-  const handleDelete = (album: Album) => {
+  const handleDelete = async (album: Album) => {
     const key = albumKey(album);
+    if (sheetCfg) {
+      const idx = albums.findIndex((a) => albumKey(a) === key);
+      if (idx < 0) return;
+      setSheetBusy(true);
+      try {
+        await deleteAlbumFromSheet(sheetCfg, idx);
+        await refreshFromSheet(sheetCfg);
+        setSelected(null);
+        toast.success("Álbum removido");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Falha ao remover da planilha");
+      } finally {
+        setSheetBusy(false);
+      }
+      return;
+    }
     setAlbums((prev) => prev.filter((a) => albumKey(a) !== key));
     setSelected(null);
     toast.success("Álbum removido");
@@ -217,23 +322,28 @@ function Index() {
       toast.error("Já existe um álbum com esse artista e nome");
       return null;
     }
-    let updated: Album | null = null;
-    setAlbums((prev) =>
-      prev.map((p) => {
-        if (albumKey(p) !== oldKey) return p;
-        updated = {
-          ...p,
-          disco: changes.disco,
-          artista: changes.artista,
-          ano: changes.ano,
-          capa: changes.capa,
-          spotify: changes.spotify,
-          youtubeMusic: changes.youtubeMusic,
-          tipo: changes.tipo,
-        };
-        return updated;
-      }),
-    );
+    const idx = albums.findIndex((a) => albumKey(a) === oldKey);
+    if (idx < 0) return null;
+    const updated: Album = {
+      ...albums[idx],
+      disco: changes.disco,
+      artista: changes.artista,
+      ano: changes.ano,
+      capa: changes.capa,
+      spotify: changes.spotify,
+      youtubeMusic: changes.youtubeMusic,
+      tipo: changes.tipo,
+    };
+    if (sheetCfg) {
+      setSheetBusy(true);
+      updateAlbumInSheet(sheetCfg, idx, updated)
+        .then(() => refreshFromSheet(sheetCfg))
+        .then(() => toast.success("Álbum atualizado"))
+        .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar na planilha"))
+        .finally(() => setSheetBusy(false));
+      return updated;
+    }
+    setAlbums((prev) => prev.map((p, i) => (i === idx ? updated : p)));
     toast.success("Álbum atualizado");
     return updated;
   };
@@ -331,7 +441,7 @@ function Index() {
   if (!hasLibrary) {
     return (
       <>
-        <ImportPrompt onLoad={handleLoad} />
+        <ImportPrompt onLoad={handleLoad} onSheetConnected={handleSheetConnected} />
         <Toaster />
       </>
     );
@@ -360,6 +470,21 @@ function Index() {
             <span className="ml-1 text-sm text-muted-foreground">
               {albums.length} álbuns
             </span>
+            {sheetCfg && (
+              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">
+                <Sheet className="size-3" />
+                <span className="max-w-[160px] truncate">{sheetCfg.title}</span>
+                <button
+                  onClick={() => refreshFromSheet()}
+                  disabled={sheetBusy}
+                  className="ml-1 rounded p-0.5 hover:bg-muted disabled:opacity-50"
+                  aria-label="Recarregar planilha"
+                  title="Recarregar planilha"
+                >
+                  <RefreshCw className={`size-3 ${sheetBusy ? "animate-spin" : ""}`} />
+                </button>
+              </span>
+            )}
           </div>
 
           <div className="ml-auto flex flex-1 flex-wrap items-center justify-end gap-2">
@@ -434,22 +559,47 @@ function Index() {
                   <Plus className="size-4" />
                   Adicionar álbum
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleImportClick}>
-                  <Upload className="size-4" />
-                  Importar CSV
-                </DropdownMenuItem>
+                {!sheetCfg && (
+                  <DropdownMenuItem onClick={handleImportClick}>
+                    <Upload className="size-4" />
+                    Importar CSV
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleExport}>
                   <Download className="size-4" />
                   Exportar CSV
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setConfirmClear(true)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                  Limpar biblioteca
-                </DropdownMenuItem>
+                {sheetCfg ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setSheetDialogOpen(true)}>
+                      <Sheet className="size-4" />
+                      Alterar URL da planilha
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setConfirmDisconnect(true)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Unlink className="size-4" />
+                      Desconectar planilha
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={() => setSheetDialogOpen(true)}>
+                      <Sheet className="size-4" />
+                      Conectar planilha
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setConfirmClear(true)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                      Limpar biblioteca
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -544,6 +694,28 @@ function Index() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <ConnectSheetDialog
+        open={sheetDialogOpen}
+        onOpenChange={setSheetDialogOpen}
+        initialUrl={sheetCfg?.url}
+        onConnected={handleSheetConnected}
+      />
+
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desconectar planilha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A planilha continua intacta no Google. Você sai do modo conectado e volta para a tela inicial.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnectSheet}>Desconectar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
