@@ -698,6 +698,28 @@ function Index() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <ConnectSheetDialog
+        open={sheetDialogOpen}
+        onOpenChange={setSheetDialogOpen}
+        initialUrl={sheetCfg?.url}
+        onConnected={handleSheetConnected}
+      />
+
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desconectar planilha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A planilha continua intacta no Google. Você sai do modo conectado e volta para a tela inicial.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnectSheet}>Desconectar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Toaster />
     </div>
   );
