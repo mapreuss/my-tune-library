@@ -1,64 +1,117 @@
-## Biblioteca Musical — App Front-end
+# Conectar planilha do Google Sheets (além do CSV)
 
-Aplicação 100% client-side (sem backend, sem banco). Todos os dados ficam em `localStorage`. Visual claro e moderno em paleta Warm Sand (creme/areia/marrom suave) com cantos arredondados generosos.
+## Visão geral
 
-### Fluxo principal
+Adicionar uma segunda forma de carregar a biblioteca: conectar uma planilha do Google Sheets que tenha as mesmas colunas do CSV (`Disco, Artista, Ano, Capa, Spotify, YouTubeMusic, Tipo`). Quando uma planilha está conectada:
 
-1. **Primeira abertura** — tela de boas-vindas pedindo upload do CSV (drag & drop ou seletor). Formato aceito: colunas `Disco,Artista` (mínimo). Após carregar, salva no `localStorage` e nunca mais pede.
-2. **Enriquecimento automático** — para cada álbum sem capa/ano/links, consulta a iTunes Search API (`https://itunes.apple.com/search?term=...&entity=album&limit=1`) e preenche:
-  - URL da capa (alta resolução, trocando `100x100` por `600x600`)
-  - Ano de lançamento
-  - Links de busca para Spotify (`https://open.spotify.com/search/Artista%20Album`) e YouTube Music (`https://music.youtube.com/search?q=Artista%20Album`)
-   Progresso mostrado com barra discreta no topo. Resultados ficam em cache no `localStorage`.
-3. **Galeria principal** — grid responsivo de cards com capa grande, título do álbum, artista e ano. Cantos arredondados (`rounded-2xl`), sombras suaves, hover com leve elevação. Álbuns sem capa mostram placeholder elegante com iniciais.
-4. **Clique no card** — abre modal com capa ampliada, metadados e dois botões grandes: **Abrir no Spotify** e **Abrir no YouTube Music** (abrem em nova aba). Botão de excluir e botão de re-buscar metadados.
+- A view lê os álbuns direto da planilha (não usa `localStorage` para os dados).
+- Adicionar / editar / excluir álbuns chama a API do Google Sheets e atualiza a planilha.
+- Após cada operação, a view recarrega da planilha — planilha e UI sempre sincronizadas.
+- A URL da planilha + token OAuth ficam salvos no `localStorage` (só a configuração, não os dados).
+- Em "Ferramentas" há um modal para alterar a URL ou desconectar a planilha.
 
-### Barra de ferramentas (topo)
+O fluxo de CSV continua exatamente como está.
 
-- **Ordenar por**: Artista (A→Z, com álbuns do mesmo artista por ano crescente) | Álbum (A→Z)
-- **Buscar**: filtro de texto rápido (artista ou álbum)
-- **Adicionar álbum**: abre dialog pedindo só Artista e Nome — o resto é buscado na iTunes
-- **Importar CSV**: substitui ou mescla com a biblioteca atual
-- **Exportar CSV**: baixa CSV com colunas `Disco,Artista,Ano,Capa,Spotify,YouTubeMusic`
+## O que você precisa configurar no Google Cloud
 
-### Estrutura de rotas
+Antes de eu poder implementar, você precisa criar uma credencial OAuth:
 
-- `/` — galeria (única rota necessária, modais para detalhes/adicionar)
+1. Vá em https://console.cloud.google.com → crie um projeto (ou use um existente).
+2. **APIs & Services → Library** → habilite **Google Sheets API**.
+3. **APIs & Services → OAuth consent screen** → tipo **External** → preencha nome do app, e-mail, escopo `https://www.googleapis.com/auth/spreadsheets` → adicione seu e-mail como usuário de teste.
+4. **APIs & Services → Credentials → Create credentials → OAuth Client ID** → tipo **Web application**.
+   - Em **Authorized JavaScript origins**, adicione:
+     - `https://my-tune-library.lovable.app`
+     - `https://id-preview--42957bd3-0a17-4caa-87c4-d8d019ff53b0.lovable.app`
+     - `http://localhost:5173` (opcional, dev local)
+5. Anote o **Client ID** (público, vai no código) — não precisa do Client Secret para esse fluxo (usaremos OAuth implícito/token client do GIS, que roda 100% no browser).
 
-### Detalhes técnicos
+Depois disso vou te pedir só o **Client ID** via secret (`GOOGLE_OAUTH_CLIENT_ID`) — apesar de ser público, fica mais limpo guardar como segredo para você poder rotacionar.
 
-- **Stack**: TanStack Start + React + Tailwind v4 + shadcn/ui (Dialog, Button, Input, Select, Sonner para toasts).
-- **Storage key**: `music-library-v1` com array de objetos `{ disco, artista, ano?, capa?, spotify?, youtubeMusic?, enriched: boolean }`.
-- **CSV**: parser/serializer próprio leve (lida com vírgulas dentro de aspas — caso "Whatever People Say I Am, That's What I'm Not"). Sem dependência extra.
-- **iTunes API**: chamadas diretas do browser (CORS habilitado pela Apple). Throttle simples (ex: 4 requests paralelos) para não saturar. Falhas silenciosas — álbum fica marcado como "não enriquecido" e pode ser re-tentado.
-- **Ordenação por artista**: agrupa por artista (A→Z, locale `pt-BR`, ignora acentos), dentro do grupo ordena por ano crescente; álbuns sem ano vão ao final do grupo.
-- **Adicionar álbum**: insere no estado, dispara enriquecimento imediato, persiste.
+## Fluxo do usuário
 
-### Layout/visual
+### Tela inicial (sem nada conectado)
+A `ImportPrompt` ganha um segundo bloco abaixo do drag-and-drop do CSV:
 
-```text
-┌─────────────────────────────────────────────────┐
-│  Biblioteca   [busca]  [ordenar▾] [+] [↓CSV] │
-├─────────────────────────────────────────────────┤
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐           │
-│  │CAPA│ │CAPA│ │CAPA│ │CAPA│ │CAPA│           │
-│  └────┘ └────┘ └────┘ └────┘ └────┘           │
-│  Album   Album   Album   Album   Album         │
-│  Artista Artista Artista Artista Artista       │
-└─────────────────────────────────────────────────┘
-```
+- **"Conectar planilha do Google Sheets"** com um botão "Conectar planilha".
+- Texto explicativo: *"A planilha precisa estar aberta (compartilhada ou sua), e conter as colunas: Disco, Artista, Ano, Capa, Spotify, YouTubeMusic, Tipo (a primeira linha é o cabeçalho)."*
+- Ao clicar:
+  1. Pede a URL da planilha (input em modal).
+  2. Dispara o consentimento OAuth do Google (popup do Google Identity Services).
+  3. Valida que consegue ler a aba e que as colunas existem.
+  4. Salva config + carrega álbuns da planilha.
 
-- Background `#faf8f5`, cards `#f0ebe3`, accent `#8b7355`, texto escuro suave.
-- Tipografia: sans-serif moderna (Inter ou similar do sistema).
-- Cards quadrados com capa em `aspect-square`, cantos `rounded-2xl`.
-- Modal com cantos `rounded-3xl`, capa grande à esquerda, ações à direita.
+### Modo "Planilha conectada"
+- Quando há planilha conectada, a página principal lê e escreve direto nela.
+- Header indica "Conectado a: <nome da planilha>" com um botão de refresh.
+- O botão **Ferramentas** abre um menu/modal com:
+  - "Alterar URL da planilha" (re-valida e reconecta).
+  - "Desconectar planilha" (remove config local, volta pra tela inicial).
+  - As ferramentas existentes (exportar, etc.) continuam funcionando.
 
-### Entregáveis
+### Add / Edit / Delete com planilha conectada
+- **Add**: `append` na planilha → recarrega.
+- **Edit**: encontra a linha pelo índice → `values.update` no range específico → recarrega.
+- **Delete**: `batchUpdate` com `deleteDimension` (linha) → recarrega.
+- Em caso de erro (token expirado), tenta renovar silenciosamente; se falhar, pede consentimento de novo.
 
-- `src/routes/index.tsx` — galeria + toolbar
-- `src/components/AlbumCard.tsx`, `AlbumDialog.tsx`, `AddAlbumDialog.tsx`, `ImportPrompt.tsx`
-- `src/lib/csv.ts` — parse/serialize
-- `src/lib/itunes.ts` — busca de metadados
-- `src/lib/storage.ts` — wrapper localStorage
-- `src/lib/streaming.ts` — geração das URLs de busca
-- CSV inicial do usuário pré-carregado opcionalmente via botão "Usar exemplo" na tela de boas-vindas.
+## Detalhes técnicos
+
+### Autenticação
+Usar **Google Identity Services (GIS) Token Client** no browser:
+- Script: `https://accounts.google.com/gsi/client`
+- Escopo: `https://www.googleapis.com/auth/spreadsheets`
+- Fluxo: `google.accounts.oauth2.initTokenClient({ client_id, scope, callback })`.
+- Token de acesso (1h) guardado em memória; ao expirar, re-solicita silenciosamente com `prompt: ''`.
+- O Client ID vem de `import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID` (vou expor o secret com prefixo `VITE_` por ser público).
+
+### API calls
+Chamadas REST diretas do browser (sem server function necessário):
+- Ler: `GET https://sheets.googleapis.com/v4/spreadsheets/{id}/values/A1:G10000` com `Authorization: Bearer {token}`.
+- Append: `POST .../values/A1:append?valueInputOption=USER_ENTERED`.
+- Update linha: `PUT .../values/A{row}:G{row}?valueInputOption=USER_ENTERED`.
+- Delete linha: `POST .../{id}:batchUpdate` com `deleteDimension`.
+- Metadata (nome da planilha + sheetId da primeira aba): `GET .../{id}?fields=properties.title,sheets.properties`.
+
+### Parsing
+Reaproveitar a lógica de mapeamento de colunas que já existe em `parseCSV` — extrair pra função compartilhada `mapRowsToAlbums(headerRow, dataRows)` em `src/lib/csv.ts`. Usada tanto pelo CSV quanto pelo Sheets.
+
+### Estado e armazenamento
+Novo módulo `src/lib/sheets.ts`:
+- `loadSheetConfig() / saveSheetConfig() / clearSheetConfig()` — guarda `{ spreadsheetId, sheetTitle, sheetId, url }` em `localStorage` (chave `music-library-sheet-v1`).
+- `fetchAlbumsFromSheet()`, `appendAlbum()`, `updateAlbumAt(rowIndex, album)`, `deleteAlbumAt(rowIndex)`.
+- `connectSheet(url)` valida URL, autoriza, lê metadata, valida colunas mínimas (Disco + Artista).
+
+Novo hook `src/hooks/useLibrarySource.ts`:
+- Retorna `{ source: 'csv' | 'sheet' | 'none', albums, isLoading, add, update, remove, refresh, disconnect }`.
+- Em `csv`: opera em `localStorage` (comportamento atual).
+- Em `sheet`: opera via API; cada mutação re-busca a planilha.
+
+`src/routes/index.tsx` passa a usar esse hook em vez de tocar `loadLibrary/saveLibrary` direto. Os componentes `AlbumDialog`, `AddAlbumDialog`, etc., não mudam — recebem callbacks normais.
+
+### UI nova
+- `src/components/ConnectSheetDialog.tsx` — modal de conectar/alterar URL, com instruções sobre colunas e compartilhamento.
+- `src/components/ToolsMenu.tsx` (ou estender o existente) — adicionar itens "Gerenciar planilha" e "Desconectar".
+- Pequeno indicador no header quando há planilha conectada.
+
+### Arquivos a criar
+- `src/lib/sheets.ts`
+- `src/lib/google-auth.ts` (carrega script GIS, gerencia token)
+- `src/hooks/useLibrarySource.ts`
+- `src/components/ConnectSheetDialog.tsx`
+
+### Arquivos a modificar
+- `src/lib/csv.ts` (extrair `mapRowsToAlbums`)
+- `src/components/ImportPrompt.tsx` (adicionar bloco de Sheets)
+- `src/routes/index.tsx` (usar `useLibrarySource`, abrir modal de gerenciar planilha)
+- `src/routes/__root.tsx` (carregar script `gsi/client` via `<script>` no head)
+
+### Segredo necessário
+- `GOOGLE_OAUTH_CLIENT_ID` (vou expor como `VITE_GOOGLE_OAUTH_CLIENT_ID` no código pois Client ID OAuth é público).
+
+## Limitações honestas
+- O token OAuth vive só na aba atual (1h). Quando expira, abre um popup silencioso pra renovar — se o navegador bloquear, pede um clique.
+- Funciona apenas com planilhas onde o usuário logado tem permissão de edição.
+- A primeira aba da planilha é usada por padrão (posso permitir escolher se quiser numa próxima iteração).
+
+Aprovando o plano, eu já implemento e te peço o `GOOGLE_OAUTH_CLIENT_ID` via formulário seguro.
