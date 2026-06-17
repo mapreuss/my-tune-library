@@ -470,6 +470,21 @@ function Index() {
             <span className="ml-1 text-sm text-muted-foreground">
               {albums.length} álbuns
             </span>
+            {sheetCfg && (
+              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">
+                <Sheet className="size-3" />
+                <span className="max-w-[160px] truncate">{sheetCfg.title}</span>
+                <button
+                  onClick={() => refreshFromSheet()}
+                  disabled={sheetBusy}
+                  className="ml-1 rounded p-0.5 hover:bg-muted disabled:opacity-50"
+                  aria-label="Recarregar planilha"
+                  title="Recarregar planilha"
+                >
+                  <RefreshCw className={`size-3 ${sheetBusy ? "animate-spin" : ""}`} />
+                </button>
+              </span>
+            )}
           </div>
 
           <div className="ml-auto flex flex-1 flex-wrap items-center justify-end gap-2">
