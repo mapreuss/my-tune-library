@@ -52,7 +52,11 @@ export function parseCSV(text: string): Album[] {
   }
 
   if (rows.length === 0) return [];
-  const header = rows[0].map((h) => h.trim().toLowerCase());
+  return mapRowsToAlbums(rows[0], rows.slice(1));
+}
+
+export function mapRowsToAlbums(headerRow: string[], dataRows: string[][]): Album[] {
+  const header = headerRow.map((h) => (h ?? "").trim().toLowerCase());
   const idx = (name: string) => header.indexOf(name);
   const iDisco = idx("disco");
   const iArtista = idx("artista");
@@ -63,23 +67,28 @@ export function parseCSV(text: string): Album[] {
   const iTipo = idx("tipo");
 
   const albums: Album[] = [];
-  for (let r = 1; r < rows.length; r++) {
-    const cols = rows[r];
-    if (cols.every((c) => c.trim() === "")) continue;
-    const disco = (iDisco >= 0 ? cols[iDisco] : cols[0] || "").trim();
-    const artista = (iArtista >= 0 ? cols[iArtista] : cols[1] || "").trim();
+  for (const cols of dataRows) {
+    if (!cols || cols.every((c) => (c ?? "").trim() === "")) continue;
+    const disco = ((iDisco >= 0 ? cols[iDisco] : cols[0]) ?? "").trim();
+    const artista = ((iArtista >= 0 ? cols[iArtista] : cols[1]) ?? "").trim();
     if (!disco && !artista) continue;
     albums.push({
       disco,
       artista,
-      ano: iAno >= 0 ? (cols[iAno] || "").trim() || undefined : undefined,
-      capa: iCapa >= 0 ? (cols[iCapa] || "").trim() || undefined : undefined,
-      spotify: iSpotify >= 0 ? (cols[iSpotify] || "").trim() || undefined : undefined,
-      youtubeMusic: iYt >= 0 ? (cols[iYt] || "").trim() || undefined : undefined,
-      tipo: iTipo >= 0 ? (cols[iTipo] || "").trim().toLowerCase() || undefined : undefined,
+      ano: iAno >= 0 ? ((cols[iAno] ?? "").trim() || undefined) : undefined,
+      capa: iCapa >= 0 ? ((cols[iCapa] ?? "").trim() || undefined) : undefined,
+      spotify: iSpotify >= 0 ? ((cols[iSpotify] ?? "").trim() || undefined) : undefined,
+      youtubeMusic: iYt >= 0 ? ((cols[iYt] ?? "").trim() || undefined) : undefined,
+      tipo: iTipo >= 0 ? ((cols[iTipo] ?? "").trim().toLowerCase() || undefined) : undefined,
     });
   }
   return albums;
+}
+
+export const SHEET_HEADERS = ["Disco", "Artista", "Ano", "Capa", "Spotify", "YouTubeMusic", "Tipo"] as const;
+
+export function albumToRow(a: Album): string[] {
+  return [a.disco, a.artista, a.ano ?? "", a.capa ?? "", a.spotify ?? "", a.youtubeMusic ?? "", a.tipo ?? ""];
 }
 
 function escape(value: string | undefined): string {
