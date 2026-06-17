@@ -157,20 +157,24 @@ function Index() {
         async (a) => {
           const enriched = await enrichAlbum(a);
           if (cancelled) return enriched;
-          let updatedRow: { idx: number; album: Album } | null = null;
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const _typeHelper: { idx: number; album: Album } | null = updatedRow;
+          const updatedRow: { current: { idx: number; album: Album } | null } = { current: null };
           setAlbums((prev) => {
             const key = albumKey(a);
             return prev.map((p, idx) => {
               if (albumKey(p) !== key) return p;
               const merged = { ...p, ...enriched };
-              updatedRow = { idx, album: merged };
+              updatedRow.current = { idx, album: merged };
               return merged;
             });
           });
           // Write enrichment back to sheet (if connected)
-          if (sheetCfg && updatedRow) {
+          if (sheetCfg && updatedRow.current) {
+            try {
+              await updateAlbumInSheet(sheetCfg, updatedRow.current.idx, updatedRow.current.album);
+            } catch (e) {
+              console.error("Falha ao sincronizar enriquecimento", e);
+            }
+          }
             try {
               await updateAlbumInSheet(sheetCfg, updatedRow.idx, updatedRow.album);
             } catch (e) {
