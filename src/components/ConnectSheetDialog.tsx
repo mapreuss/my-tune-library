@@ -24,14 +24,24 @@ export function ConnectSheetDialog({ open, onOpenChange, initialUrl, onConnected
   const [url, setUrl] = useState(initialUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inIframe, setInIframe] = useState(false);
 
   useEffect(() => {
     if (open) {
       setUrl(initialUrl ?? "");
       setError(null);
       setBusy(false);
+      try {
+        setInIframe(window.self !== window.top);
+      } catch {
+        setInIframe(true);
+      }
     }
   }, [open, initialUrl]);
+
+  const handleOpenInNewTab = () => {
+    window.open(window.location.href, "_blank", "noopener,noreferrer");
+  };
 
   const handleConnect = async () => {
     setError(null);
@@ -41,7 +51,12 @@ export function ConnectSheetDialog({ open, onOpenChange, initialUrl, onConnected
       onConnected(config, albums);
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao conectar.");
+      const msg = e instanceof Error ? e.message : "Falha ao conectar.";
+      setError(
+        inIframe
+          ? `${msg} — o Google costuma bloquear o login dentro do preview em iframe. Abra em uma nova aba.`
+          : msg,
+      );
     } finally {
       setBusy(false);
     }
