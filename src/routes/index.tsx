@@ -239,6 +239,9 @@ function Index() {
   }, [availableTypes, typeFilter]);
 
   const handleLoad = (loaded: Album[]) => {
+    // CSV / sample mode: ensure we are not bound to any sheet
+    clearSheetConfig();
+    setSheetCfg(null);
     setAlbums(loaded);
     setHasLibrary(true);
     saveLibrary(loaded);
