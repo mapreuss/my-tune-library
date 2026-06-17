@@ -103,10 +103,32 @@ function Index() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [enriching, setEnriching] = useState<{ done: number; total: number } | null>(null);
   const [pendingImport, setPendingImport] = useState<Album[] | null>(null);
+  const [sheetCfg, setSheetCfg] = useState<SheetConfig | null>(null);
+  const [sheetDialogOpen, setSheetDialogOpen] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [sheetBusy, setSheetBusy] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  // Load from localStorage on mount
+  // Load on mount: sheet first, then localStorage
   useEffect(() => {
+    const cfg = loadSheetConfig();
+    if (cfg) {
+      setSheetCfg(cfg);
+      setSheetBusy(true);
+      fetchSheetAlbums(cfg)
+        .then((list) => {
+          setAlbums(list);
+          setHasLibrary(true);
+        })
+        .catch((e) => {
+          toast.error(e instanceof Error ? e.message : "Falha ao ler a planilha");
+        })
+        .finally(() => {
+          setSheetBusy(false);
+          setHydrated(true);
+        });
+      return;
+    }
     const stored = loadLibrary();
     if (stored && stored.length > 0) {
       setAlbums(stored);
@@ -115,11 +137,11 @@ function Index() {
     setHydrated(true);
   }, []);
 
-  // Persist whenever albums change (after hydration)
+  // Persist to localStorage only in CSV mode
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || sheetCfg) return;
     if (hasLibrary) saveLibrary(albums);
-  }, [albums, hydrated, hasLibrary]);
+  }, [albums, hydrated, hasLibrary, sheetCfg]);
 
   // Background enrichment
   useEffect(() => {
