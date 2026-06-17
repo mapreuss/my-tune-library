@@ -67,7 +67,7 @@ export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
             const f = e.dataTransfer.files?.[0];
             if (f) handleFile(f);
           }}
-          className={`flex h-full cursor-pointer flex-col rounded-3xl border p-6 text-center transition-colors ${
+          className={`flex h-full cursor-pointer flex-col justify-center rounded-3xl border p-6 text-center transition-colors ${
             dragOver ? "border-primary bg-card" : "border-border bg-card/50"
           }`}
           onClick={() => inputRef.current?.click()}
@@ -91,7 +91,7 @@ export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
           />
         </div>
 
-        <div className="flex h-full flex-col rounded-3xl border border-border bg-card/50 p-6 text-center">
+        <div className="flex h-full flex-col justify-center rounded-3xl border border-border bg-card/50 p-6 text-center">
           <Sheet className="mx-auto mb-3 size-8 text-primary" />
           <p className="font-medium">Conectar planilha do Google Sheets</p>
           <p className="mt-1 text-sm text-muted-foreground">
