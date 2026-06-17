@@ -43,7 +43,7 @@ export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-12">
+    <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 py-12">
       <div className="mb-6 flex size-16 items-center justify-center rounded-3xl bg-card text-primary shadow-soft">
         <FileMusic className="size-8" />
       </div>
@@ -54,54 +54,56 @@ export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
         Importe um CSV ou conecte uma planilha do Google Sheets para começar.
       </p>
 
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) handleFile(f);
-        }}
-        className={`mt-8 w-full cursor-pointer rounded-3xl border-2 border-dashed p-10 text-center transition-colors ${
-          dragOver ? "border-primary bg-card" : "border-border bg-card/50"
-        }`}
-        onClick={() => inputRef.current?.click()}
-      >
-        <Upload className="mx-auto mb-3 size-8 text-primary" />
-        <p className="font-medium">Arraste seu CSV aqui</p>
-        <p className="mt-1 text-sm text-muted-foreground">ou clique para selecionar</p>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Colunas mínimas: <code>Disco, Artista</code>
-        </p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".csv,text/csv"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) handleFile(f);
-            e.target.value = "";
+      <div className="mt-8 grid w-full gap-4 sm:grid-cols-2">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
           }}
-        />
-      </div>
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) handleFile(f);
+          }}
+          className={`flex h-full cursor-pointer flex-col rounded-3xl border-2 border-dashed p-10 text-center transition-colors ${
+            dragOver ? "border-primary bg-card" : "border-border bg-card/50"
+          }`}
+          onClick={() => inputRef.current?.click()}
+        >
+          <Upload className="mx-auto mb-3 size-8 text-primary" />
+          <p className="font-medium">Arraste seu CSV aqui</p>
+          <p className="mt-1 text-sm text-muted-foreground">ou clique para selecionar</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Colunas mínimas: <code>Disco, Artista</code>
+          </p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
 
-      <div className="mt-4 w-full rounded-3xl border border-border bg-card/50 p-6 text-center">
-        <Sheet className="mx-auto mb-3 size-8 text-primary" />
-        <p className="font-medium">Conectar planilha do Google Sheets</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Edições na biblioteca vão direto para a planilha — sempre sincronizadas.
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          A planilha deve estar aberta e ter as colunas: Disco, Artista, Ano, Capa, Spotify, YouTubeMusic, Tipo.
-        </p>
-        <Button onClick={() => setSheetOpen(true)} className="mt-4 rounded-xl">
-          Conectar planilha
-        </Button>
+        <div className="flex h-full flex-col rounded-3xl border border-border bg-card/50 p-6 text-center">
+          <Sheet className="mx-auto mb-3 size-8 text-primary" />
+          <p className="font-medium">Conectar planilha do Google Sheets</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Edições na biblioteca vão direto para a planilha — sempre sincronizadas.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            A planilha deve estar aberta e ter as colunas: Disco, Artista, Ano, Capa, Spotify, YouTubeMusic, Tipo.
+          </p>
+          <Button onClick={() => setSheetOpen(true)} className="mt-4 rounded-xl self-center">
+            Conectar planilha
+          </Button>
+        </div>
       </div>
 
       <div className="mt-6">
