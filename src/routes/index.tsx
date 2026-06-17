@@ -559,22 +559,47 @@ function Index() {
                   <Plus className="size-4" />
                   Adicionar álbum
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleImportClick}>
-                  <Upload className="size-4" />
-                  Importar CSV
-                </DropdownMenuItem>
+                {!sheetCfg && (
+                  <DropdownMenuItem onClick={handleImportClick}>
+                    <Upload className="size-4" />
+                    Importar CSV
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleExport}>
                   <Download className="size-4" />
                   Exportar CSV
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setConfirmClear(true)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                  Limpar biblioteca
-                </DropdownMenuItem>
+                {sheetCfg ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setSheetDialogOpen(true)}>
+                      <Sheet className="size-4" />
+                      Alterar URL da planilha
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setConfirmDisconnect(true)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Unlink className="size-4" />
+                      Desconectar planilha
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={() => setSheetDialogOpen(true)}>
+                      <Sheet className="size-4" />
+                      Conectar planilha
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setConfirmClear(true)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                      Limpar biblioteca
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
