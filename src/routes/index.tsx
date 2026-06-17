@@ -441,7 +441,7 @@ function Index() {
   if (!hasLibrary) {
     return (
       <>
-        <ImportPrompt onLoad={handleLoad} />
+        <ImportPrompt onLoad={handleLoad} onSheetConnected={handleSheetConnected} />
         <Toaster />
       </>
     );
