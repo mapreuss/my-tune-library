@@ -91,7 +91,7 @@ export function ImportPrompt({ onLoad, onSheetConnected }: Props) {
           />
         </div>
 
-        <div className="flex h-full flex-col rounded-3xl border border-border bg-card/50 p-6 text-center">
+        <div className="flex h-full flex-col justify-center rounded-3xl border border-border bg-card/50 p-6 text-center">
           <Sheet className="mx-auto mb-3 size-8 text-primary" />
           <p className="font-medium">Conectar planilha do Google Sheets</p>
           <p className="mt-1 text-sm text-muted-foreground">
