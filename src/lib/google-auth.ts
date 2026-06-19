@@ -27,6 +27,47 @@ let scriptPromise: Promise<void> | null = null;
 let currentToken: string | null = null;
 let tokenExpiresAt = 0;
 
+const TOKEN_STORAGE_KEY = "music-library-google-token-v1";
+
+type StoredToken = { token: string; expiresAt: number };
+
+function loadStoredToken(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as StoredToken;
+    if (parsed?.token && typeof parsed.expiresAt === "number" && Date.now() < parsed.expiresAt) {
+      currentToken = parsed.token;
+      tokenExpiresAt = parsed.expiresAt;
+    } else {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function persistToken(token: string, expiresAt: number) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify({ token, expiresAt } satisfies StoredToken));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearStoredToken() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+loadStoredToken();
+
 function loadScript(): Promise<void> {
   if (scriptPromise) return scriptPromise;
   scriptPromise = new Promise((resolve, reject) => {
@@ -74,6 +115,7 @@ function requestToken(prompt: string): Promise<string> {
           if (resp.access_token) {
             currentToken = resp.access_token;
             tokenExpiresAt = Date.now() + 55 * 60 * 1000;
+            persistToken(resp.access_token, tokenExpiresAt);
             resolve(resp.access_token);
           } else {
             reject(new Error(resp.error ?? "Falha ao autenticar com Google"));
@@ -116,4 +158,5 @@ export function clearGoogleAuth() {
   }
   currentToken = null;
   tokenExpiresAt = 0;
+  clearStoredToken();
 }
