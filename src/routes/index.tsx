@@ -43,7 +43,9 @@ import { loadLibrary, saveLibrary, clearLibrary } from "@/lib/storage";
 import { enrichAlbum, runWithConcurrency } from "@/lib/itunes";
 import {
   loadSheetConfig,
+  loadSheetAlbumCache,
   clearSheetConfig,
+  connectSheet,
   fetchAlbums as fetchSheetAlbums,
   appendAlbumToSheet,
   updateAlbumInSheet,
@@ -125,6 +127,7 @@ function Index() {
   const [sheetDialogOpen, setSheetDialogOpen] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [sheetBusy, setSheetBusy] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   // Load on mount: sheet first, then localStorage
@@ -132,18 +135,24 @@ function Index() {
     const cfg = loadSheetConfig();
     if (cfg) {
       setSheetCfg(cfg);
+      const cached = loadSheetAlbumCache(cfg);
+      setAlbums(cached ?? []);
+      setHasLibrary(true);
+      setHydrated(true);
       setSheetBusy(true);
       fetchSheetAlbums(cfg)
         .then((list) => {
           setAlbums(list);
           setHasLibrary(true);
+          setSheetError(null);
         })
         .catch((e) => {
-          toast.error(e instanceof Error ? e.message : "Falha ao ler a planilha");
+          const msg = e instanceof Error ? e.message : "Falha ao ler a planilha";
+          setSheetError(msg);
+          toast.error("Planilha salva. Autorize o Google para sincronizar novamente.");
         })
         .finally(() => {
           setSheetBusy(false);
-          setHydrated(true);
         });
       return;
     }
@@ -242,6 +251,7 @@ function Index() {
     // CSV / sample mode: ensure we are not bound to any sheet
     clearSheetConfig();
     setSheetCfg(null);
+    setSheetError(null);
     setAlbums(loaded);
     setHasLibrary(true);
     saveLibrary(loaded);
@@ -250,6 +260,7 @@ function Index() {
 
   const handleSheetConnected = (cfg: SheetConfig, loaded: Album[]) => {
     setSheetCfg(cfg);
+    setSheetError(null);
     setAlbums(loaded);
     setHasLibrary(true);
     toast.success(`Planilha "${cfg.title}" conectada (${loaded.length} álbuns)`);
@@ -261,8 +272,31 @@ function Index() {
     try {
       const list = await fetchSheetAlbums(cfg);
       setAlbums(list);
+      setHasLibrary(true);
+      setSheetError(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao recarregar planilha");
+      const msg = e instanceof Error ? e.message : "Falha ao recarregar planilha";
+      setSheetError(msg);
+      toast.error("Não foi possível sincronizar. Autorize o Google novamente.");
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
+  const handleAuthorizeSavedSheet = async () => {
+    if (!sheetCfg) return;
+    setSheetBusy(true);
+    setSheetError(null);
+    try {
+      const { config, albums: loaded } = await connectSheet(sheetCfg.url);
+      setSheetCfg(config);
+      setAlbums(loaded);
+      setHasLibrary(true);
+      toast.success(`Planilha "${config.title}" sincronizada (${loaded.length} álbuns)`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao autorizar a planilha";
+      setSheetError(msg);
+      toast.error(msg);
     } finally {
       setSheetBusy(false);
     }
@@ -271,6 +305,7 @@ function Index() {
   const handleDisconnectSheet = () => {
     clearSheetConfig();
     setSheetCfg(null);
+    setSheetError(null);
     setAlbums([]);
     setHasLibrary(false);
     setConfirmDisconnect(false);
@@ -629,6 +664,21 @@ function Index() {
         {enriching && (
           <div className="mx-auto max-w-7xl px-4 pb-2 text-xs text-muted-foreground sm:px-6">
             Buscando metadados… {enriching.done} de {enriching.total}
+          </div>
+        )}
+        {sheetCfg && sheetError && (
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 pb-3 text-xs text-muted-foreground sm:px-6">
+            <span>Planilha salva. Autorize o Google para voltar a sincronizar sem colar a URL novamente.</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAuthorizeSavedSheet}
+              disabled={sheetBusy}
+              className="h-7 rounded-xl px-2 text-xs"
+            >
+              {sheetBusy ? <RefreshCw className="size-3 animate-spin" /> : null}
+              Autorizar Google
+            </Button>
           </div>
         )}
       </header>

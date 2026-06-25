@@ -1,7 +1,13 @@
 import { mapRowsToAlbums, albumToRow, SHEET_HEADERS, type Album } from "./csv";
-import { getAccessToken, ensureGoogleAuthInteractive, clearGoogleAuth } from "./google-auth";
+import {
+  getAccessToken,
+  ensureGoogleAuthInteractive,
+  clearGoogleAuth,
+  clearCachedGoogleToken,
+} from "./google-auth";
 
 const CONFIG_KEY = "music-library-sheet-v1";
+const CACHE_KEY = "music-library-sheet-cache-v1";
 
 export type SheetConfig = {
   spreadsheetId: string;
@@ -23,11 +29,49 @@ export function loadSheetConfig(): SheetConfig | null {
 }
 
 export function saveSheetConfig(cfg: SheetConfig) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+}
+
+export function loadSheetAlbumCache(cfg?: SheetConfig): Album[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      spreadsheetId?: string;
+      sheetId?: number;
+      albums?: Album[];
+    };
+    if (!Array.isArray(parsed.albums)) return null;
+    if (cfg && parsed.spreadsheetId !== cfg.spreadsheetId) return null;
+    if (cfg && parsed.sheetId !== cfg.sheetId) return null;
+    return parsed.albums;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSheetAlbumCache(cfg: SheetConfig, albums: Album[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        spreadsheetId: cfg.spreadsheetId,
+        sheetId: cfg.sheetId,
+        albums,
+        savedAt: Date.now(),
+      }),
+    );
+  } catch {
+    /* ignore */
+  }
 }
 
 export function clearSheetConfig() {
   localStorage.removeItem(CONFIG_KEY);
+  localStorage.removeItem(CACHE_KEY);
   clearGoogleAuth();
 }
 
@@ -47,7 +91,8 @@ async function api<T>(path: string, init?: RequestInit, retry = true): Promise<T
     },
   });
   if (res.status === 401 && retry) {
-    await getAccessToken(true);
+    clearCachedGoogleToken();
+    await getAccessToken();
     return api<T>(path, init, false);
   }
   if (!res.ok) {
@@ -94,6 +139,7 @@ export async function connectSheet(url: string): Promise<{ config: SheetConfig; 
   };
   const albums = await fetchAlbumsWithConfig(cfg);
   saveSheetConfig(cfg);
+  saveSheetAlbumCache(cfg, albums);
   return { config: cfg, albums };
 }
 
@@ -118,7 +164,9 @@ async function fetchAlbumsWithConfig(cfg: SheetConfig): Promise<Album[]> {
 }
 
 export async function fetchAlbums(cfg: SheetConfig): Promise<Album[]> {
-  return fetchAlbumsWithConfig(cfg);
+  const albums = await fetchAlbumsWithConfig(cfg);
+  saveSheetAlbumCache(cfg, albums);
+  return albums;
 }
 
 export async function appendAlbumToSheet(cfg: SheetConfig, album: Album): Promise<void> {

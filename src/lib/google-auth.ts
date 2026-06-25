@@ -141,11 +141,13 @@ export async function getAccessToken(forceInteractive = false): Promise<string> 
     return currentToken;
   }
   if (forceInteractive) return requestToken("consent");
-  try {
-    return await requestToken("");
-  } catch {
-    return requestToken("consent");
-  }
+  return requestToken("");
+}
+
+export function clearCachedGoogleToken() {
+  currentToken = null;
+  tokenExpiresAt = 0;
+  clearStoredToken();
 }
 
 export function clearGoogleAuth() {
