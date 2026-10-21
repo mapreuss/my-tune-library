@@ -229,7 +229,7 @@ export function AlbumDialog({ album, open, onOpenChange, onDelete, onEdit, avail
                 </a>
               )}
               {yt && (
-                <a href={yt} target="aba_youtube_music" rel="noopener noreferrer">
+                <a href={yt} target="aba_youtube_music">
                   <Button
                     variant="secondary"
                     className="w-full justify-between rounded-xl"
